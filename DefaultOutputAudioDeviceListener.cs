@@ -71,7 +71,7 @@ namespace TurnOnTheAmplifier
             m_deviceEnum = new MMDeviceEnumerator();
             m_notificationClient = new NotificationClient(this);
             Current = null;
-            foreach (Role role in Enum.GetValues<Role>())
+            foreach (Role role in new[] { Role.Multimedia, Role.Console })
             {
                 foreach (DataFlow flow in new[] { DataFlow.Render, DataFlow.All })
                 {

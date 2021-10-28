@@ -13,7 +13,6 @@ namespace TurnOnTheAmplifier
     {
 
         private static readonly Regex s_deviceRegex = new(@"^Headphones \([^\)]*\)$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-        const string c_device = "headphones";
         const int c_cooldownTime = 10;
 
         private readonly ILogger<Service> m_logger;
@@ -122,7 +121,7 @@ namespace TurnOnTheAmplifier
         private void Send()
         {
             m_logger.LogInformation($"{nameof(TurnOnTheAmplifier)} turned {(m_localOn ? "on" : "off")}.");
-            Process.Start($"python \"c:/users/franc/amplifier.py\" {(m_localOn ? "on" : "off")}");
+            Process.Start("python", $"\"c:/users/franc/amplifier.py\" {(m_localOn ? "on" : "off")}");
         }
 
     }
