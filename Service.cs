@@ -121,7 +121,7 @@ namespace TurnOnTheAmplifier
         private void Send()
         {
             m_logger.LogInformation($"{nameof(TurnOnTheAmplifier)} turned {(m_localOn ? "on" : "off")}.");
-            Process.Start("python", $"\"c:/users/franc/amplifier.py\" {(m_localOn ? "on" : "off")}");
+            Process.Start("C:/Users/franc/AppData/Local/Programs/Python/Python310/python.exe", $"\"c:/users/franc/amplifier.py\" {(m_localOn ? "on" : "off")}");
         }
 
     }
