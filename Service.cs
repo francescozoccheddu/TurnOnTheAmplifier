@@ -12,8 +12,8 @@ namespace TurnOnTheAmplifier
     internal sealed class Service : IHostedService, IAsyncDisposable
     {
 
-        private static readonly Regex s_deviceRegex = new(@"^Headphones \([^\)]*\)$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-        const int c_cooldownTime = 10;
+        private static readonly Regex s_deviceRegex = new(@"^Speakers \(([0-9]+- )?USB Audio Device\)$", RegexOptions.Compiled);
+        const int c_cooldownTime = 5;
 
         private readonly ILogger<Service> m_logger;
         private readonly object m_lock;
