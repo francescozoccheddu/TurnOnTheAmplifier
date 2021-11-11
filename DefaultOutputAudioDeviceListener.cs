@@ -46,7 +46,7 @@ namespace TurnOnTheAmplifier
 
         }
 
-        public delegate void ChangeEventHandler(string _name);
+        public delegate void ChangeEventHandler(MMDevice _device);
 
         private int RegisterEndpointNotificationCallback([In][MarshalAs(UnmanagedType.Interface)] IMMNotificationClient _client)
         {
@@ -85,21 +85,24 @@ namespace TurnOnTheAmplifier
             RegisterEndpointNotificationCallback(m_notificationClient);
         }
 
-        public string? Current { get; private set; }
+        public MMDevice? Current { get; private set; }
         public event ChangeEventHandler? OnChanged;
 
         private void UpdateCurrent(MMDevice _device)
         {
-            if (_device.FriendlyName != Current)
+            if (_device.ID != Current?.ID)
             {
-                Current = _device.FriendlyName;
+                Current = _device;
                 OnChanged?.Invoke(Current);
             }
         }
 
         void NotificationClient.IListener.NotifyDefaultOutputDeviceChanged(string _deviceId)
         {
-            UpdateCurrent(m_deviceEnum.GetDevice(_deviceId));
+            if (!m_disposed)
+            {
+                UpdateCurrent(m_deviceEnum.GetDevice(_deviceId));
+            }
         }
 
         public void Dispose()
