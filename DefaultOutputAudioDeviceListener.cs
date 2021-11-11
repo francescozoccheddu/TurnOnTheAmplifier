@@ -82,7 +82,7 @@ namespace TurnOnTheAmplifier
                     }
                 }
             }
-            RegisterEndpointNotificationCallback(m_notificationClient);
+            _ = RegisterEndpointNotificationCallback(m_notificationClient);
         }
 
         public MMDevice? Current { get; private set; }
@@ -110,7 +110,7 @@ namespace TurnOnTheAmplifier
             if (!m_disposed)
             {
                 m_disposed = true;
-                UnregisterEndpointNotificationCallback(m_notificationClient);
+                _ = UnregisterEndpointNotificationCallback(m_notificationClient);
                 m_deviceEnum.Dispose();
             }
         }
