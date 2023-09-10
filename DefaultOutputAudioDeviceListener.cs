@@ -46,7 +46,7 @@ namespace TurnOnTheAmplifier
 
         }
 
-        public delegate void ChangeEventHandler(MMDevice _device);
+        public delegate void OnChangeEventHandler(MMDevice _device);
 
         private int RegisterEndpointNotificationCallback([In][MarshalAs(UnmanagedType.Interface)] IMMNotificationClient _client)
         {
@@ -86,7 +86,7 @@ namespace TurnOnTheAmplifier
         }
 
         public MMDevice? Current { get; private set; }
-        public event ChangeEventHandler? OnChanged;
+        public event OnChangeEventHandler? OnChanged;
 
         private void UpdateCurrent(MMDevice _device)
         {
