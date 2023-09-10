@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Worker">
 
   <PropertyGroup>
-    <TargetFramework>net5.0-windows</TargetFramework>
+    <TargetFramework>net7.0-windows10.0.22621.0</TargetFramework>
     <Nullable>enable</Nullable>
     <UserSecretsId>dotnet-TurnOnTheAmplifier-595FC046-C13A-4BDD-992E-0E745C6C1250</UserSecretsId>
     <OutputType>exe</OutputType>
