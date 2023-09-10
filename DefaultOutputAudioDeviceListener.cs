@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 namespace TurnOnTheAmplifier
 {
 
-    internal sealed class DefaultOutputAudioDeviceListener : DefaultOutputAudioDeviceListener.NotificationClient.IListener, IDisposable
+    public sealed class DefaultOutputAudioDeviceListener : DefaultOutputAudioDeviceListener.NotificationClient.IListener, IDisposable
     {
 
         private sealed class NotificationClient : IMMNotificationClient

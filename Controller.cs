@@ -1,19 +1,14 @@
-﻿
-using LostTech.WhichPython;
-
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 
 using NAudio.CoreAudioApi;
 
 using System;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
+using System.Net;
 using System.Threading;
 
 namespace TurnOnTheAmplifier
 {
-    internal sealed class Controller : IDisposable
+    public sealed partial class Controller : IDisposable
     {
 
         private const int c_pythonMajorVerion = 3;
@@ -22,37 +17,24 @@ namespace TurnOnTheAmplifier
         private readonly Timer m_timer;
         private readonly object m_lock;
         private readonly ILogger? m_logger;
+        private readonly TapoPlug m_plug;
 
         private bool m_localOn;
         private bool? m_remoteOn;
         private bool m_waiting;
         private bool m_disposed;
 
-        public string OutputFriendlyName { get; }
-        public float ScriptCooldownTime { get; }
-        public float ScriptTimeoutTime { get; }
-        public float MaxVolume { get; }
-        public string PythonScriptFile { get; }
+        public Configuration Config { get; }
 
-        public Controller(string _outputFriendlyName, string _pythonScriptFile, float _maxVolume = 0.25f, float _scriptCooldownTime = 5, float _scriptTimeoutTime = 5)
-            : this(null, _outputFriendlyName, _pythonScriptFile, _maxVolume, _scriptCooldownTime, _scriptTimeoutTime)
+        public Controller(Configuration _config)
+            : this(null, _config)
         { }
 
-        public Controller(ILogger? _logger, string _outputFriendlyName, string _pythonScriptFile, float _maxVolume = 0.25f, float _scriptCooldownTime = 5, float _scriptTimeoutTime = 5)
+        public Controller(ILogger? _logger, Configuration _config)
         {
-            if (_maxVolume is < 0 or > 1)
-            {
-                throw new ArgumentOutOfRangeException(nameof(_maxVolume), _maxVolume, "Not in [0,1]");
-            }
-            if (_scriptCooldownTime is < 0 or > 60)
-            {
-                throw new ArgumentOutOfRangeException(nameof(_scriptCooldownTime), _scriptCooldownTime, "Not in [0,60]");
-            }
-            if (_scriptTimeoutTime is <= 0 or > 60)
-            {
-                throw new ArgumentOutOfRangeException(nameof(_scriptTimeoutTime), _scriptTimeoutTime, "Not in (0,60]");
-            }
-            _ = Path.GetFullPath(_pythonScriptFile);
+            _config.Validate();
+            Config = _config;
+            m_plug = new(IPAddress.Parse(_config.TapoDeviceIpAddress), Config.TapoUsername, Config.TapoPassword, Config.TimeoutTime);
             m_lock = new();
             m_logger = _logger;
             m_waiting = false;
@@ -62,11 +44,6 @@ namespace TurnOnTheAmplifier
             m_timer = new(TimerTicked, null, Timeout.Infinite, Timeout.Infinite);
             m_listener = new();
             m_listener.OnChanged += DeviceChanged;
-            ScriptCooldownTime = _scriptCooldownTime;
-            ScriptCooldownTime = _scriptTimeoutTime;
-            OutputFriendlyName = _outputFriendlyName;
-            MaxVolume = _maxVolume;
-            PythonScriptFile = _pythonScriptFile;
             DeviceChanged(m_listener.Current);
             m_logger?.LogInformation($"{nameof(Controller)} created.");
         }
@@ -97,7 +74,7 @@ namespace TurnOnTheAmplifier
 
         private bool IsTargetDevice(MMDevice _device)
         {
-            return _device.FriendlyName == $"{OutputFriendlyName} ({_device.DeviceFriendlyName})";
+            return _device.FriendlyName == $"{Config.AudioOutputFriendlyName} ({_device.DeviceFriendlyName})";
         }
 
         private void DeviceChanged(MMDevice? _device)
@@ -119,16 +96,16 @@ namespace TurnOnTheAmplifier
                         {
                             volume.Channels[c].VolumeLevelScalar = volume.MasterVolumeLevelScalar;
                         }
-                        if (volume.MasterVolumeLevelScalar > MaxVolume)
+                        if (volume.MasterVolumeLevelScalar > Config.MaxVolume)
                         {
-                            volume.MasterVolumeLevelScalar = MaxVolume;
+                            volume.MasterVolumeLevelScalar = Config.MaxVolume;
                             m_logger?.LogInformation($"{nameof(Controller)} turned down the volume.");
                         }
                     }
                     if (!m_waiting)
                     {
                         m_waiting = true;
-                        _ = m_timer.Change((int)Math.Round(ScriptCooldownTime * 1000), Timeout.Infinite);
+                        _ = m_timer.Change(Config.CooldownTime * 1000, Timeout.Infinite);
                         UpdateRemote();
                     }
                     else
@@ -159,23 +136,27 @@ namespace TurnOnTheAmplifier
             }
             if (m_remoteOn != m_localOn)
             {
-                m_remoteOn = m_localOn;
+                m_remoteOn = null;
                 m_logger?.LogInformation($"{nameof(Controller)} is turning {(m_localOn ? "on" : "off")} the amplifier.");
-                string pythonExecutable = PythonEnvironment
-                    .EnumerateEnvironments()
-                    .First(_e => _e.LanguageVersion?.Major == c_pythonMajorVerion)
-                    .InterpreterPath
-                    .FullName;
-                m_logger?.LogInformation($"{nameof(Controller)} is using Python {c_pythonMajorVerion} interpreter '{pythonExecutable}'");
-                Process process = Process.Start(pythonExecutable, $"\"{PythonScriptFile}\" {(m_localOn ? "on" : "off")}");
-                bool exited = process.WaitForExit((int)Math.Round(ScriptCooldownTime * 1000));
-                if (exited)
+                bool done = false;
+                try
                 {
-                    m_logger?.LogInformation($"{nameof(Controller)} script exited with code {process.ExitCode}.");
+                    m_plug.SetState(m_localOn);
+                    m_remoteOn = m_localOn;
+                    done = true;
                 }
-                else
+                catch (TapoPlug.LoginException)
                 {
-                    m_logger?.LogInformation($"{nameof(Controller)} script execution timed out.");
+                    m_logger?.LogError($"{nameof(Controller)} failed to login to device.");
+
+                }
+                catch (TapoPlug.StateChangeException)
+                {
+                    m_logger?.LogError($"{nameof(Controller)} failed to change the device state.");
+                }
+                if (done)
+                {
+                    m_logger?.LogInformation($"{nameof(Controller)} successfully turned {(m_localOn ? "on" : "off")} the amplifier.");
                 }
             }
         }

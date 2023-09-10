@@ -9,12 +9,10 @@ using System.Threading.Tasks;
 
 namespace TurnOnTheAmplifier
 {
-    internal sealed class Service : IHostedService
+    public sealed class Service : IHostedService
     {
 
         private const string c_configurationJsonFile = "configuration.json";
-
-        private sealed record Configuration(string OutputFriendlyName, string PythonScriptFile, float MaxVolume = 0.25f, float ScriptCooldownTime = 5, float ScriptTimeoutTime = 5);
 
         private readonly ILogger<Service> m_logger;
         private Controller? m_controller;
@@ -29,9 +27,9 @@ namespace TurnOnTheAmplifier
             m_logger.LogInformation($"{nameof(Service)} starting.");
             string actualConfigurationJsonFile = Path.GetFullPath(c_configurationJsonFile, AppContext.BaseDirectory);
             m_logger.LogInformation($"{nameof(Service)} is loading configuration file '{actualConfigurationJsonFile}'.");
-            Configuration configuration = JsonSerializer.Deserialize<Configuration>(File.ReadAllText(actualConfigurationJsonFile))!;
-            m_logger.LogInformation($"{nameof(Service)} loaded configuration '{configuration}'.");
-            m_controller = new(m_logger, configuration.OutputFriendlyName, Path.GetFullPath(configuration.PythonScriptFile, AppContext.BaseDirectory), configuration.MaxVolume, configuration.ScriptCooldownTime, configuration.ScriptTimeoutTime);
+            Configuration config = JsonSerializer.Deserialize<Configuration>(File.ReadAllText(actualConfigurationJsonFile))!;
+            m_logger.LogInformation($"{nameof(Service)} loaded configuration '{config with { TapoPassword = "<private>" }}'.");
+            m_controller = new(m_logger, config);
             m_logger.LogInformation($"{nameof(Service)} started.");
             return Task.CompletedTask;
         }
