@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Net;
 
-using TapoSharp.Clients;
-using TapoSharp.Enums;
+using TapoConnect;
+
 
 namespace TurnOnTheAmplifier
 {
@@ -43,20 +43,27 @@ namespace TurnOnTheAmplifier
             Timeout = _timeout;
         }
 
-        public void SetState(bool _on)
+        public async void SetState(bool _on)
         {
-            P100Client client = new(Address, Timeout);
-            if (client.Login(Username, Password))
+            TapoDeviceKey key;
+            TapoDeviceClient client;
+            try
             {
-                bool done = client.ChangeState(_on ? PowerState.ON : PowerState.OFF);
-                if (!done)
-                {
-                    throw new StateChangeException();
-                }
+                client = new();
+                key = await client.LoginByIpAsync(Address.ToString(), Username, Password);
             }
-            else
+            catch
             {
                 throw new LoginException();
+            }
+            try
+            {
+                await client.SetPowerAsync(key, _on);
+
+            }
+            catch
+            {
+                throw new StateChangeException();
             }
         }
 
